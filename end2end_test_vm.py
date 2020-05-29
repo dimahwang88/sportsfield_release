@@ -135,3 +135,74 @@ show_image[valid_index] = overlay
 imageio.imwrite('overlay_opt.jpg', show_image)
 # plt.imshow(show_image)
 # plt.show()
+
+opt.optim_iters = 80
+
+video_cap = cv2.VideoCapture('./data/sample.mp4')
+frame_list = []
+while True:
+    success, image = video_cap.read()
+    if not success:
+        break
+    pil_image = Image.fromarray(np.uint8(image[..., ::-1]))
+    pil_image = pil_image.resize([1280, 720], resample=Image.NEAREST)
+    image = np.array(pil_image)
+    frame_list.append(image)
+
+orig_homography_list = []
+for idx, frame in enumerate(frame_list):
+    pil_image = Image.fromarray(np.uint8(frame))
+    pil_image = pil_image.resize([256, 256], resample=Image.NEAREST)
+    frame = np.array(pil_image)
+    frame = utils.np_img_to_torch_img(frame)
+    if opt.need_single_image_normalization:
+        frame = image_utils.normalize_single_image(frame)
+    orig_homography = e2e.homography_inference.infer_upstream_homography(frame[None])
+    orig_homography_list.append(orig_homography.detach())
+
+first_frame = True
+optim_homography_list = []
+for idx, frame in enumerate(frame_list):
+    print('{0} / {1}'.format(idx+1, len(frame_list)))
+    pil_image = Image.fromarray(np.uint8(frame))
+    pil_image = pil_image.resize([256, 256], resample=Image.NEAREST)
+    frame = np.array(pil_image)
+    frame = utils.np_img_to_torch_img(frame)
+    if opt.need_single_image_normalization:
+        frame = image_utils.normalize_single_image(frame)
+    _, optim_homography = e2e.optim(frame[None], template_image, refresh=first_frame)
+    optim_homography_list.append(optim_homography.detach())
+    first_frame = False
+
+warped_tmp_orig_list = []
+warped_tmp_optim_list = []
+for orig_h, optim_h in zip(orig_homography_list, optim_homography_list):
+    warped_tmp_orig = warp.warp_image(template_image_draw, orig_h, out_shape=(720, 1280))[0]
+    warped_tmp_orig = utils.torch_img_to_np_img(warped_tmp_orig)
+    warped_tmp_orig_list.append(warped_tmp_orig)
+    warped_tmp_optim = warp.warp_image(template_image_draw, optim_h, out_shape=(720, 1280))[0]
+    warped_tmp_optim = utils.torch_img_to_np_img(warped_tmp_optim)
+    warped_tmp_optim_list.append(warped_tmp_optim)
+
+def save_to_vid(frame_list, template_list, fname):
+    video_name = fname
+    video = cv2.VideoWriter(video_name, cv2.VideoWriter_fourcc('M','J','P','G'), 25, (1280, 720))
+    edge_color = [0, 1.0, 0]
+    for frame, template in zip(frame_list, template_list):
+        video_content = frame[..., ::-1] / 255.0
+        template_content = template
+        valid_index = template_content[..., 0]>0
+        edge_index = template_content[..., 0] >= 254.0/255.0
+        overlay = (video_content[valid_index].astype('float32') + template_content[valid_index].astype('float32'))/2
+        out_frame = video_content.copy()
+        out_frame[valid_index] = overlay
+        out_frame[edge_index] = edge_color
+        out_frame = out_frame * 255.0
+        out_frame = out_frame.astype('uint8')
+        video.write(out_frame)
+    cv2.destroyAllWindows()
+    video.release()
+    os.system("/usr/bin/ffmpeg -y -i {0} -vcodec libx264 {1}".format(fname, fname.replace('.mp4', '_h264.mp4')))
+
+save_to_vid(frame_list, warped_tmp_orig_list, './orig_overlay.mp4')
+save_to_vid(frame_list, warped_tmp_optim_list, './optim_overlay.mp4')

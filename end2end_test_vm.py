@@ -25,8 +25,8 @@ opt.batch_size = 1
 opt.coord_conv_template = True
 opt.error_model = 'loss_surface'
 opt.error_target = 'iou_whole'
-# opt.goal_image_path = './data/world_cup_2018.png'
-opt.goal_image_path = './data/3.jpg'
+opt.goal_image_path = './data/world_cup_2018.png'
+# opt.goal_image_path = './data/3.jpg'
 opt.guess_model = 'init_guess'
 opt.homo_param_method = 'deep_homography'
 opt.load_weights_error_model = 'pretrained_loss_surface'
@@ -54,7 +54,7 @@ imageio.imwrite('goal_image.jpg', goal_image)
 
 # resize image to square shape, 256 * 256, and squash to [0, 1]
 pil_image = Image.fromarray(np.uint8(goal_image))
-pil_image = pil_image.resize([512, 512], resample=Image.NEAREST)
+pil_image = pil_image.resize([256, 256], resample=Image.NEAREST)
 goal_image = np.array(pil_image)
 
 imageio.imwrite('goal_image_resize.jpg', goal_image)

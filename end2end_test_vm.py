@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
 from PIL import Image
-from tqdm import tqdm_notebook as tqdm
+# from tqdm import tqdm_notebook as tqdm
 from utils import utils, warp, image_utils, constant_var
 from models import end_2_end_optimization
 from options import fake_options

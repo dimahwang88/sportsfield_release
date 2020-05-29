@@ -54,7 +54,7 @@ imageio.imwrite('goal_image.jpg', goal_image)
 
 # resize image to square shape, 256 * 256, and squash to [0, 1]
 pil_image = Image.fromarray(np.uint8(goal_image))
-pil_image = pil_image.resize([256, 256], resample=Image.NEAREST)
+pil_image = pil_image.resize([512, 512], resample=Image.NEAREST)
 goal_image = np.array(pil_image)
 
 imageio.imwrite('goal_image_resize.jpg', goal_image)

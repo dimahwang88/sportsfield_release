@@ -85,6 +85,7 @@ print('mean of template: {0}'.format(template_image.mean()))
 print('std of template: {0}'.format(template_image.std()))
 
 e2e = end_2_end_optimization.End2EndOptimFactory.get_end_2_end_optimization_model(opt)
+orig_homography, optim_homography = e2e.optim(goal_image[None], template_image)
 
 # reload image and template for visualization
 # overload goal image
